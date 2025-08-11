@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Administrador</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Panel de Administrador</h1>
+    <button id="logoutBtn">Cerrar Sesión</button>
+  </header>
+  
+  <main>
+    <section class="admin-section">
+      <h2>Gestión de Usuarios</h2>
+      
+      <div class="user-form">
+        <h3>Registrar Nuevo Usuario</h3>
+        <form id="registerForm">
+          <div class="form-group">
+            <label for="newEmail">Correo electrónico:</label>
+            <input type="email" id="newEmail" required>
+          </div>
+          <div class="form-group">
+            <label for="newPassword">Contraseña:</label>
+            <input type="password" id="newPassword" required>
+          </div>
+          <button type="submit">Registrar Usuario</button>
+          <div id="registerMessage" class="message"></div>
+        </form>
+      </div>
+      
+      <div class="user-list">
+        <h3>Usuarios Registrados</h3>
+        <table id="usersTable">
+          <thead>
+            <tr>
+              <th>Correo Electrónico</th>
+              <th>Rol</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="usersList">
+            <!-- Los usuarios se cargarán aquí con JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Usuario</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- SheetJS CDN -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Gestor de Archivos Excel</h1>
+    <button id="logoutBtn">Cerrar Sesión</button>
+  </header>
+  
+  <main>
+    <!-- Aquí irá el gestor de Excel que creamos anteriormente -->
+    <div class="upload-section">
+      <input type="file" id="fileInput" accept=".xlsx, .xls">
+      <button id="loadBtn">Cargar Excel</button>
+      <button id="saveBtn" disabled>Guardar Cambios</button>
+    </div>
+    
+    <div id="sheetSelector"></div>
+    <div id="excelTable" class="table-container"></div>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
