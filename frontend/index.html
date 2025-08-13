@@ -1,0 +1,32 @@
+<div class="container">
+    <!-- Subida de Excel -->
+    <section id="upload-section">
+        <h2>Subir Excel</h2>
+        <input type="file" id="excel-file" accept=".xlsx,.xls">
+        <button id="upload-btn">Subir</button>
+        <div id="share-section" style="display:none;">
+            <p>Comparte este código:</p>
+            <h3 id="access-code"></h3>
+        </div>
+    </section>
+
+    <!-- Acceso con código -->
+    <section id="join-section">
+        <h2>Unirse con código</h2>
+        <input type="text" id="join-code" placeholder="Código de acceso">
+        <button id="join-btn">Unirse</button>
+    </section>
+
+    <!-- Editor colaborativo -->
+    <section id="editor-section" style="display:none;">
+        <div id="spreadsheet"></div>
+        <div id="collaborators">
+            <h4>Usuarios conectados:</h4>
+            <ul id="users-list"></ul>
+        </div>
+    </section>
+</div>
+
+<!-- Handsontable -->
+<script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
