@@ -1,32 +1,75 @@
-import openpyxl
-import uuid
-import boto3
+import os
+import re
+from werkzeug.utils import secure_filename
 from io import BytesIO
-from config import S3_CONFIG
+import openpyxl
+from flask import current_app
+import openpyxl.utils.exceptions
+import zipfile
+import olefile
+import tempfile
+import shutil
+import pandas as pd
 
-def process_excel(file):
-    # Leer Excel
-    wb = openpyxl.load_workbook(BytesIO(file.read()))
-    sheet = wb.active
-    
-    # Extraer datos
-    columns = [cell.value for cell in sheet[1]]
-    data = []
-    for row in sheet.iter_rows(min_row=2, values_only=True):
-        data.append(row)
-    
-    # Generar ID único
-    file_id = str(uuid.uuid4())
-    
-    # Guardar en S3
-    save_to_s3(file_id, file)
-    
-    return file_id, columns
+# Configuración
+ALLOWED_EXTENSIONS = {'xlsx', 'xls', 'xlsm', 'xlsb', 'csv'}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_ROWS_TO_PROCESS = 1000  # Límite de filas a procesar
 
-def save_to_s3(file_id, file):
-    s3 = boto3.client('s3', 
-                      aws_access_key_id=S3_CONFIG['ACCESS_KEY'],
-                      aws_secret_access_key=S3_CONFIG['SECRET_KEY'])
-    
-    file.seek(0)
-    s3.upload_fileobj(file, S3_CONFIG['BUCKET'], f"excels/{file_id}.xlsx")
+def allowed_file(filename):
+    ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+    return ext in ALLOWED_EXTENSIONS
+
+def is_valid_excel(file_stream):
+    """Verifica si es un archivo Excel válido usando múltiples métodos"""
+    try:
+        # Guardar en un archivo temporal para múltiples lecturas
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            shutil.copyfileobj(file_stream, tmp)
+            tmp_path = tmp.name
+        
+        # Verificar por extensión
+        ext = file_stream.filename.rsplit('.', 1)[1].lower() if '.' in file_stream.filename else ''
+        
+        # Para archivos .xlsb necesitamos un manejo especial
+        if ext == 'xlsb':
+            try:
+                # Intentar leer con pandas
+                df = pd.read_excel(tmp_path, engine='pyxlsb', nrows=1)
+                return True
+            except:
+                return False
+        
+        # Intento 1: Verificar si es un ZIP que contiene archivos Excel
+        with open(tmp_path, 'rb') as f:
+            if f.read(4) == b'PK\x03\x04':
+                f.seek(0)
+                with zipfile.ZipFile(f) as z:
+                    return any(name.startswith('xl/') for name in z.namelist())
+        
+        # Intento 2: Verificar si es un OLE container (formato antiguo)
+        with open(tmp_path, 'rb') as f:
+            if olefile.isOleFile(f):
+                return True
+        
+        # Intento 3: Verificar firma de archivos .xls
+        with open(tmp_path, 'rb') as f:
+            if f.read(8) == b'\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1':
+                return True
+                
+        # Intento 4: Leer con pandas como último recurso
+        try:
+            df = pd.read_excel(tmp_path, nrows=1)
+            return True
+        except:
+            return False
+            
+    except Exception as e:
+        current_app.logger.error(f"Error en validación de Excel: {str(e)}")
+        return False
+    finally:
+        file_stream.seek(0)
+        try:
+            os.unlink(tmp_path)
+        except:
+            pass

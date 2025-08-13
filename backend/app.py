@@ -1,47 +1,76 @@
-from flask import Flask, request, jsonify
-from flask_socketio import SocketIO
-from services.excel_service import process_excel, save_to_s3
-from services.auth_service import generate_access_code
 import os
+import logging
+from flask import Flask, request, jsonify, render_template, send_from_directory
+from dotenv import load_dotenv
+from services.excel_service import validate_excel, allowed_file, MAX_ROWS_TO_PROCESS
+
+# Configurar logging
+logging.basicConfig(level=logging.ERROR)
+
+# Cargar variables de entorno
+load_dotenv()
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'secret-key-default')
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB
+
+# Servir archivos estáticos
+@app.route('/static/<path:path>')
+def serve_static(path):
+    return send_from_directory('static', path)
+
+# Ruta principal
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# Ruta de verificación de salud
+@app.route('/health')
+def health_check():
+    return jsonify({
+        "status": "active",
+        "message": "Excel Collaboration Service",
+        "version": "1.0.0"
+    })
 
 # Endpoint para subir Excel
 @app.route('/upload', methods=['POST'])
 def upload_excel():
-    file = request.files['file']
-    if not file:
-        return jsonify({"error": "No file provided"}), 400
-    
-    # Procesar archivo
-    file_id, columns = process_excel(file)
-    
-    # Generar código de acceso
-    access_code = generate_access_code(file_id)
-    
-    return jsonify({
-        "file_id": file_id,
-        "access_code": access_code,
-        "columns": columns
-    })
-
-# WebSocket para colaboración
-@socketio.on('connect')
-def handle_connect():
-    print('Client connected')
-
-@socketio.on('join_spreadsheet')
-def handle_join(data):
-    file_id = data['file_id']
-    # Lógica de validación de acceso
-    # ...
-
-@socketio.on('cell_update')
-def handle_cell_update(data):
-    # Propagación de cambios a otros usuarios
-    socketio.emit('update_cell', data, room=data['file_id'])
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port)
+    try:
+        # Verificar si se envió un archivo
+        if 'file' not in request.files:
+            return jsonify({"error": "No se encontró el archivo en la solicitud"}), 400
+        
+        file = request.files['file']
+        
+        # Verificar si se seleccionó un archivo
+        if file.filename == '':
+            return jsonify({"error": "No se seleccionó ningún archivo"}), 400
+        
+        # Validar extensión
+        if not allowed_file(file.filename):
+            return jsonify({"error": "Extensión de archivo no permitida"}), 400
+        
+        # Validar y procesar el archivo
+        file_metadata, error = validate_excel(file)
+        
+        if error:
+            return jsonify({"error": error}), 400
+        
+        # Limitar el número de filas procesadas
+        if file_metadata.get('row_count', 0) > MAX_ROWS_TO_PROCESS:
+            file_metadata['data'] = file_metadata['data'][:MAX_ROWS_TO_PROCESS]
+            file_metadata['partial'] = True
+            file_metadata['message'] = f"Se muestran solo las primeras {MAX_ROWS_TO_PROCESS} filas"
+        
+        file_metadata['status'] = "Archivo validado correctamente"
+        file_metadata['message'] = file_metadata.get('message', "Próximamente se guardará y generará código de acceso")
+        
+        return jsonify(file_metadata)
+        
+    except Exception as e:
+        app.logger.error(f"Error en endpoint /upload: {str(e)}")
+        return jsonify({
+            "error": "Error interno del servidor",
+            "details": str(e)
+        }), 500

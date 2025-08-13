@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Excel Collaboration</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="../static/styles.css">
+    <!-- Handsontable CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
 </head>
 <body>
     <div class="container">
@@ -25,6 +27,17 @@
                 </form>
                 <div id="upload-status"></div>
             </section>
+            
+            <!-- Sección para visualizar Excel -->
+            <section id="excel-viewer" style="display:none; margin-top:30px;">
+                <h2>Visualización del Excel</h2>
+                <div class="file-info">
+                    <p><strong>Archivo:</strong> <span id="excel-filename"></span></p>
+                    <p><strong>Filas:</strong> <span id="excel-rows"></span> | 
+                       <strong>Columnas:</strong> <span id="excel-cols"></span></p>
+                </div>
+                <div id="spreadsheet-container" style="overflow:auto; max-height:500px;"></div>
+            </section>
         </main>
 
         <footer>
@@ -32,10 +45,8 @@
         </footer>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Handsontable JS -->
+    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    <script src="../static/script.js"></script>
 </body>
 </html>
-
-<!-- Handsontable -->
-<script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
